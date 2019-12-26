@@ -1,95 +1,38 @@
 package main
 
 import (
-	"crypto/sha256"
-	"database/sql"
-	"log"
-	"reflect"
+	// "./chatDB"
 
-	_ "github.com/go-sql-driver/mysql"
-)
-
-type Account struct {
-	name     string
-	password []byte
-}
-
-const (
-	salt     string = "salt"
-	accessDB string = "root:password@tcp(localhost:3306)/gosql"
+	"fmt"
+	"net/http"
+	// "log"
+	// "os"
+	// "io/ioutil"
 )
 
 func main() {
 
-	// AddAccount("shadow", "shadow")
-	AccountCollation("shadow", "shadow")
+	// var message []string
+
+	//チャット受信時の処理
+	http.HandleFunc("/sendChat", receiveChat)
+	//チャットの更新
+	http.HandleFunc("/updateChat", updateChat)
+
+	http.ListenAndServe(":8080", nil)
 }
 
-func AddAccount(nameIn string, passIn string) {
+//handler関数を設定
+func receiveChat(w http.ResponseWriter, r *http.Request) {
 
-	//入力パスワードのハッシュ化
-	hash := sha256.Sum256([]byte(salt + passIn))
-
-	//使用するDBに接続
-	db, err := sql.Open("mysql", accessDB)
-	if err != nil {
-		log.Println(err)
-	}
-	defer db.Close()
-
-	ins, err := db.Prepare("INSERT INTO Account(name,pass) VALUES(?,?)")
-	if err != nil {
-		log.Println(err)
-	}
-	defer ins.Close()
-
-	ins.Exec(nameIn, byteToStr(hash))
+	//ファイル書き込み URL.RawQueryはパラメータ
+	fmt.Fprintln(w, r.URL.RawQuery)
 
 }
 
-//AccountCollation は入力されたnameとpassが登録済みか
-func AccountCollation(nameIn string, passIn string) bool {
+func updateChat(w http.ResponseWriter, r *http.Request) {
 
-	//使用するDBに接続
-	db, err := sql.Open("mysql", accessDB)
+	//ファイル書き込み URL.RawQueryはパラメータ
+	fmt.Fprintln(w, r.URL.RawQuery)
 
-	if err != nil {
-		log.Println(err)
-	}
-	defer db.Close()
-
-	//アカウントのパスワードを取得
-	sel, err := db.Prepare("SELECT pass FROM Account WHERE name=?")
-	if err != nil {
-		log.Println(err)
-	}
-	defer sel.Close()
-
-	var pass string
-
-	err = sel.QueryRow(nameIn).Scan(&pass)
-	if err != nil {
-		panic(err)
-	}
-
-	//入力パスワードのハッシュ化
-	hash := sha256.Sum256([]byte(salt + passIn))
-
-	//入力パスワードと比較
-	if reflect.DeepEqual(byteToStr(hash), pass) {
-		log.Println("Login Success")
-		return true
-	} else {
-		return false
-	}
-}
-
-func byteToStr(hash [32]byte) string {
-
-	var hexStr string
-
-	for _, hex := range hash {
-		hexStr = hexStr + string(hex)
-	}
-	return hexStr
 }
